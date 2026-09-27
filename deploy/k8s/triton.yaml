@@ -1,0 +1,90 @@
+# Triton Inference Server on a GPU node. Needs the NVIDIA GPU Operator (device
+# plugin -> nvidia.com/gpu resource; GPU Feature Discovery -> the node labels below).
+# initContainers build TensorRT engines on the node itself (engines are tied to
+# the GPU architecture), then Triton serves ONNX + TensorRT models side by side.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: triton
+  namespace: waferscan
+  labels: {app: triton}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: triton}
+  template:
+    metadata:
+      labels: {app: triton}
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.present         # set by GPU Feature Discovery
+                    operator: In
+                    values: ["true"]
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              preference:
+                matchExpressions:
+                  - key: nvidia.com/gpu.product
+                    operator: In
+                    values: ["NVIDIA-L4", "NVIDIA-A10G", "Tesla-T4"]
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      initContainers:
+        - name: stage-trt                              # copy ONNX models + TRT configs to the shared volume
+          image: ghcr.io/your-org/waferscan-triton:1.0.0
+          command: ["sh", "-c", "mkdir -p /work/onnx /work/trt && cp -r /trt/. /work/trt/ && cp -r /models/. /work/onnx/"]
+          volumeMounts:
+            - {name: trt, mountPath: /work}
+        - name: build-trt                              # FP16 engines for THIS node's GPU
+          image: nvcr.io/nvidia/tensorrt:24.08-py3     # same release as the Triton image
+          command: ["bash", "-c", "set -e; for d in /work/trt/*_trt; do m=$(basename $d); trtexec --onnx=/work/onnx/${m%_trt}/1/model.onnx --saveEngine=$d/1/model.plan --fp16 --minShapes=input:1x2x64x64 --optShapes=input:8x2x64x64 --maxShapes=input:64x2x64x64; done; rm -rf /work/onnx"]
+          resources:
+            limits: {nvidia.com/gpu: 1}
+          volumeMounts:
+            - {name: trt, mountPath: /work}
+      containers:
+        - name: triton
+          image: ghcr.io/your-org/waferscan-triton:1.0.0
+          args: ["tritonserver", "--model-repository=/models", "--model-repository=/trt-built/trt", "--strict-readiness=true"]
+          ports:
+            - {name: http, containerPort: 8000}
+            - {name: grpc, containerPort: 8001}
+            - {name: metrics, containerPort: 8002}
+          resources:
+            requests: {cpu: "2", memory: "4Gi"}
+            limits: {nvidia.com/gpu: 1, memory: "8Gi"}
+          readinessProbe:
+            httpGet: {path: /v2/health/ready, port: http}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /v2/health/live, port: http}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - {name: trt, mountPath: /trt-built}
+            - {name: dshm, mountPath: /dev/shm}
+      volumes:
+        - name: trt
+          emptyDir: {}
+        - name: dshm
+          emptyDir: {medium: Memory, sizeLimit: 1Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: triton
+  namespace: waferscan
+  labels: {app: triton}
+spec:
+  selector: {app: triton}
+  ports:
+    - {name: http, port: 8000, targetPort: http}
+    - {name: grpc, port: 8001, targetPort: grpc}
+    - {name: metrics, port: 8002, targetPort: metrics}

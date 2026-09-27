@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - base.yaml
+  - api.yaml
+  - triton.yaml
+  - mlops.yaml
+# kubectl apply -k deploy/k8s
+# Replace ghcr.io/your-org/... with your registry (or use `images:` overrides here).

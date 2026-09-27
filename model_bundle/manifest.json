@@ -1,0 +1,91 @@
+{
+  "classes": [
+    "Center",
+    "Donut",
+    "Edge-Loc",
+    "Edge-Ring",
+    "Loc",
+    "Near-full",
+    "Random",
+    "Scratch",
+    "None"
+  ],
+  "input": {
+    "name": "input",
+    "shape": [
+      "batch",
+      2,
+      64,
+      64
+    ],
+    "dtype": "float32",
+    "channels": [
+      "on_wafer_mask",
+      "failed_die_mask"
+    ]
+  },
+  "outputs": [
+    "logits",
+    "evid",
+    "g",
+    "fmap"
+  ],
+  "members": 5,
+  "backbone": "wafernet",
+  "dropout": 0.3,
+  "runs": [
+    {
+      "key": "ensemble",
+      "file": "ensemble.onnx",
+      "backbone": "wafernet",
+      "members": 5,
+      "dropout": 0.3
+    }
+  ],
+  "checks": {
+    "parity_max_abs_diff_ensemble": 1.52587890625e-05,
+    "parity_max_abs_diff_fast": 1.1444091796875e-05,
+    "fold0_val_accuracy": {
+      "fast_fp32": 0.9881141045958796,
+      "edge_int8": 0.9873217115689382
+    }
+  },
+  "cpu_latency_batch1": {
+    "fast_fp32": {
+      "p50_ms": 1.823,
+      "p95_ms": 2.095
+    },
+    "edge_int8": {
+      "p50_ms": 1.456,
+      "p95_ms": 1.607
+    },
+    "ensemble_fp32": {
+      "p50_ms": 9.12,
+      "p95_ms": 10.096
+    }
+  },
+  "cpu": 2,
+  "onnxruntime": "1.25.0",
+  "files": {
+    "ensemble.onnx": 11.0,
+    "fast.onnx": 2.2,
+    "edge_int8.onnx": 0.67
+  },
+  "end_to_end_ms": {
+    "predict_auto": {
+      "p50_ms": 11.35,
+      "p95_ms": 14.88
+    },
+    "predict_full": {
+      "p50_ms": 49.82,
+      "p95_ms": 73.53
+    },
+    "optical_4k_to_diemap": {
+      "image_wh": [
+        4128,
+        3921
+      ],
+      "best_ms": 2243.1
+    }
+  }
+}

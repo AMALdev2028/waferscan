@@ -1,0 +1,11 @@
+.git
+runs
+build/triton/trt/*/1/*.plan
+data/raw
+mlflow.db
+mlruns
+**/__pycache__
+.pytest_cache
+notebooks
+tests
+*.ckpt

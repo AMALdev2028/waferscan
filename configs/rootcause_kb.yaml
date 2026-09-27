@@ -1,0 +1,47 @@
+# Root-cause knowledge base: engineering PRIORS, P(cause | defect signature).
+# These are common textbook associations, a starting point - not ground truth.
+# Tune them with your process engineers; the data evidence then re-weights them.
+# params  -> process-log columns that would move if this cause is active
+# factors -> equipment columns (chamber/tool) where the cause would concentrate
+causes:
+  etch_edge_nonuniformity:
+    label: Etch edge non-uniformity (focus/edge ring wear)
+    params: [etch_time_s]
+    factors: [chamber]
+  ebr_misalignment:
+    label: Resist edge-bead removal (EBR) misalignment
+    params: [pr_thickness_nm]
+  deposition_temperature:
+    label: Deposition temperature profile non-uniformity
+    params: [dep_temp_c]
+  cmp_pad_wear:
+    label: CMP pad / conditioner wear (consumable)
+    params: [cmp_pad_cycles]
+  cmp_zone_pressure:
+    label: CMP carrier zone-pressure imbalance
+    params: [cmp_pad_cycles]
+  resist_thickness:
+    label: Photoresist thickness variation (spin coat)
+    params: [pr_thickness_nm]
+  implant_dose:
+    label: Ion-implant dose drift
+    params: [implant_dose]
+  particles:
+    label: Particle contamination (chamber / handling)
+    factors: [chamber]
+  handling:
+    label: Wafer handling / robot or clamp contact
+    factors: [chamber]
+  litho_focus_spot:
+    label: Lithography focus spot (chuck contamination)
+  gross_excursion:
+    label: Gross process excursion / mis-processing
+priors:
+  Center:    {deposition_temperature: 0.35, cmp_zone_pressure: 0.25, resist_thickness: 0.25, etch_edge_nonuniformity: 0.15}
+  Donut:     {cmp_zone_pressure: 0.40, deposition_temperature: 0.35, resist_thickness: 0.25}
+  Edge-Ring: {etch_edge_nonuniformity: 0.45, ebr_misalignment: 0.25, deposition_temperature: 0.20, cmp_zone_pressure: 0.10}
+  Edge-Loc:  {handling: 0.40, ebr_misalignment: 0.30, particles: 0.30}
+  Loc:       {particles: 0.45, litho_focus_spot: 0.35, handling: 0.20}
+  Random:    {particles: 0.60, implant_dose: 0.20, resist_thickness: 0.20}
+  Scratch:   {cmp_pad_wear: 0.60, handling: 0.40}
+  Near-full: {gross_excursion: 0.50, implant_dose: 0.30, resist_thickness: 0.20}

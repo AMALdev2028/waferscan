@@ -1,0 +1,13 @@
+# MLflow tracking server, same major version as the training client.
+# --allowed-hosts is required since MLflow 3.x rejects unknown Host headers (DNS-rebinding
+# protection): in k8s/compose the server is reached as "mlflow:5000", not localhost.
+FROM python:3.11-slim
+RUN pip install --no-cache-dir "mlflow==3.16.1" && useradd --create-home --uid 10001 mlflow \
+    && mkdir /mlflow && chown mlflow /mlflow
+USER mlflow
+ENV MLFLOW_DISABLE_TELEMETRY=true
+EXPOSE 5000
+CMD ["mlflow", "server", "--host", "0.0.0.0", "--port", "5000", \
+     "--backend-store-uri", "sqlite:////mlflow/mlflow.db", \
+     "--artifacts-destination", "/mlflow/artifacts", "--serve-artifacts", \
+     "--allowed-hosts", "mlflow,mlflow:5000,localhost,localhost:5000,127.0.0.1:5000"]

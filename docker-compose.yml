@@ -1,0 +1,39 @@
+# Local stack.
+#   docker compose up --build              API (CPU, ONNX Runtime) on :8080 + MLflow on :5000
+#   docker compose --profile gpu up        + Triton on a local NVIDIA GPU, API on :8081 using it
+#                                          (run `make triton-repo` first)
+services:
+  api:
+    build: {context: .}
+    ports: ["8080:8080"]
+    environment:
+      WAFERSCAN_BACKEND: onnx
+    restart: unless-stopped
+
+  mlflow:
+    build: {context: ., dockerfile: deploy/docker/Dockerfile.mlflow}
+    ports: ["5000:5000"]
+    volumes: [mlflow:/mlflow]
+    restart: unless-stopped
+
+  triton:
+    profiles: ["gpu"]
+    build: {context: ., dockerfile: deploy/triton/Dockerfile}
+    ports: ["8000:8000", "8001:8001", "8002:8002"]
+    shm_size: 1gb
+    deploy:
+      resources:
+        reservations:
+          devices: [{driver: nvidia, count: 1, capabilities: [gpu]}]
+
+  api-gpu:
+    profiles: ["gpu"]
+    build: {context: .}
+    ports: ["8081:8080"]
+    environment:
+      WAFERSCAN_BACKEND: triton
+      TRITON_URL: http://triton:8000
+    depends_on: [triton]
+
+volumes:
+  mlflow: {}

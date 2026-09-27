@@ -1,0 +1,121 @@
+{
+  "images": 6309,
+  "unique_source_ids": 4436,
+  "groups_after_near_duplicate_merge": 4162,
+  "near_duplicate_pairs_across_ids": 602,
+  "near_duplicate_pairs_with_different_labels": 0,
+  "label_conflicts_same_source": [],
+  "per_class": {
+    "Center": {
+      "images": 701,
+      "independent_wafers": 478,
+      "images_with_renamed_copy": 0,
+      "nonstandard_palette": 0
+    },
+    "Donut": {
+      "images": 701,
+      "independent_wafers": 497,
+      "images_with_renamed_copy": 0,
+      "nonstandard_palette": 0
+    },
+    "Edge-Loc": {
+      "images": 701,
+      "independent_wafers": 482,
+      "images_with_renamed_copy": 0,
+      "nonstandard_palette": 0
+    },
+    "Edge-Ring": {
+      "images": 701,
+      "independent_wafers": 492,
+      "images_with_renamed_copy": 0,
+      "nonstandard_palette": 0
+    },
+    "Loc": {
+      "images": 701,
+      "independent_wafers": 490,
+      "images_with_renamed_copy": 0,
+      "nonstandard_palette": 0
+    },
+    "Near-full": {
+      "images": 701,
+      "independent_wafers": 278,
+      "images_with_renamed_copy": 546,
+      "nonstandard_palette": 19
+    },
+    "Random": {
+      "images": 701,
+      "independent_wafers": 462,
+      "images_with_renamed_copy": 123,
+      "nonstandard_palette": 90
+    },
+    "Scratch": {
+      "images": 701,
+      "independent_wafers": 496,
+      "images_with_renamed_copy": 0,
+      "nonstandard_palette": 0
+    },
+    "None": {
+      "images": 701,
+      "independent_wafers": 487,
+      "images_with_renamed_copy": 16,
+      "nonstandard_palette": 0
+    }
+  },
+  "render_agreement": {
+    "min": 0.955869140625,
+    "p01": 0.9616951171875,
+    "median": 0.972607421875
+  },
+  "grid_shapes": {
+    "25x26": 5,
+    "25x27": 36,
+    "26x25": 3,
+    "26x26": 18,
+    "26x28": 1,
+    "26x29": 4,
+    "26x30": 2,
+    "27x25": 34,
+    "27x27": 3,
+    "27x29": 2,
+    "28x26": 4,
+    "29x26": 6,
+    "29x27": 2,
+    "29x33": 23,
+    "30x26": 3,
+    "30x34": 3,
+    "31x34": 2,
+    "31x35": 2,
+    "33x29": 30,
+    "33x35": 1,
+    "33x37": 3,
+    "33x41": 5,
+    "34x30": 2,
+    "34x34": 8,
+    "35x31": 1,
+    "35x33": 4,
+    "36x38": 3,
+    "37x33": 3,
+    "37x39": 14,
+    "38x36": 2,
+    "38x38": 26,
+    "39x37": 15,
+    "39x46": 3,
+    "41x33": 5,
+    "41x40": 1,
+    "41x41": 3,
+    "41x44": 2,
+    "41x45": 4,
+    "43x42": 3,
+    "43x50": 2,
+    "44x41": 1,
+    "45x41": 1,
+    "46x39": 2,
+    "48x48": 3,
+    "50x43": 2,
+    "52x52": 6000,
+    "55x56": 1,
+    "56x55": 2,
+    "62x75": 2,
+    "75x62": 2
+  }
+}

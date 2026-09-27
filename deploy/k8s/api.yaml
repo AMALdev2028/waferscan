@@ -1,0 +1,117 @@
+# FastAPI service: CPU nodes, horizontally scaled. Talks to Triton for GPU inference.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: waferscan-api
+  namespace: waferscan
+  labels: {app: waferscan-api}
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: waferscan-api}
+  template:
+    metadata:
+      labels: {app: waferscan-api}
+    spec:
+      affinity:
+        podAntiAffinity:                          # spread replicas across nodes
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels: {app: waferscan-api}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: api
+          image: ghcr.io/your-org/waferscan-api:1.0.0
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef: {name: waferscan-config}
+          env:
+            - {name: WAFERSCAN_THREADS, value: "2"}     # one uvicorn worker per pod (see Dockerfile)
+            - {name: WAFERSCAN_MAX_JOBS, value: "4"}
+            - {name: WAFERSCAN_LOW_MEMORY, value: "0"}
+          resources:
+            requests: {cpu: "500m", memory: "768Mi"}
+            limits: {cpu: "2", memory: "2Gi"}
+          readinessProbe:
+            httpGet: {path: /api/v1/health, port: 8080}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /api/v1/health, port: 8080}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: waferscan-api
+  namespace: waferscan
+spec:
+  selector: {app: waferscan-api}
+  sessionAffinity: ClientIP      # a batch's HTML report lives in the pod that ran the batch
+  ports:
+    - {port: 80, targetPort: 8080}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: waferscan-api
+  namespace: waferscan
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: waferscan-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 70}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: waferscan-api
+  namespace: waferscan
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels: {app: waferscan-api}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: waferscan
+  namespace: waferscan
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"      # matches WAFERSCAN_MAX_UPLOAD_MB
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: waferscan.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: waferscan-api
+                port: {number: 80}

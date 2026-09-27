@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+runs/
+build/
+mlflow.db
+mlruns/
+*.ckpt
+runs_train.log
+.venv/

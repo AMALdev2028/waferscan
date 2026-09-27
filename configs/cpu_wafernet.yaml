@@ -1,0 +1,30 @@
+# Trains in ~50 min on a 2-core laptop CPU. The default shipped model.
+data:
+  source: npz                      # npz | wm811k | synthetic
+  path: data/processed/rendered_wm811k.npz
+  size: 64
+model:
+  backbone: wafernet
+  dropout: 0.3
+  pretrained: false
+train:
+  folds: 5
+  split: grouped                   # grouped = no wafer on both sides; random = leaky (for comparison only)
+  epochs: 12                       # ends exactly on a warm-restart cycle boundary (4 + 8)
+  batch_size: 64
+  lr: 0.002
+  weight_decay: 0.01
+  cosine_restarts: {T_0: 4, T_mult: 2, eta_min: 0.00001}
+  label_smoothing: 0.1
+  focal_gamma: {start: 0.0, end: 2.0, ramp: 0.5}
+  class_balance_beta: 0.999
+  evidential_weight: 0.5
+  evidential_anneal: 0.5
+  oversample_to: 0                 # balanced dataset; set e.g. 2000 for raw WM-811K
+  seed: 42
+  num_threads: 2
+output:
+  dir: runs/cpu_wafernet
+mlflow:
+  experiment: waferscan
+  tracking_uri: null               # env MLFLOW_TRACKING_URI wins; default sqlite:///mlflow.db

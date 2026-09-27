@@ -1,0 +1,40 @@
+# Namespace, shared config and storage.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: waferscan
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: waferscan-config
+  namespace: waferscan
+data:
+  WAFERSCAN_BACKEND: "triton"                   # "onnx" = serve on the API pods' CPU, no Triton needed
+  TRITON_URL: "http://triton:8000"
+  TRITON_MODEL_SUFFIX: "_trt"                   # TensorRT engines built on the GPU node ("" = ONNX Runtime models)
+  CORS_ORIGINS: "https://waferscan.example.com"
+  WAFERSCAN_MAX_UPLOAD_MB: "20"
+  MLFLOW_TRACKING_URI: "http://mlflow:5000"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: waferscan-data                            # datasets (LSWMD.pkl / processed npz) + training runs
+  namespace: waferscan
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mlflow-data
+  namespace: waferscan
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 10Gi

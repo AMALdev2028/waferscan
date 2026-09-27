@@ -1,0 +1,86 @@
+# MLflow tracking server + a GPU training Job.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlflow
+  namespace: waferscan
+  labels: {app: mlflow}
+spec:
+  replicas: 1
+  strategy: {type: Recreate}                       # single writer on the sqlite file
+  selector:
+    matchLabels: {app: mlflow}
+  template:
+    metadata:
+      labels: {app: mlflow}
+    spec:
+      containers:
+        - name: mlflow
+          image: ghcr.io/your-org/waferscan-mlflow:1.0.0      # deploy/docker/Dockerfile.mlflow
+          ports:
+            - containerPort: 5000
+          resources:
+            requests: {cpu: "250m", memory: "512Mi"}
+          readinessProbe:                                     # first start creates the DB (~30 s)
+            httpGet: {path: /health, port: 5000}
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 12
+          volumeMounts:
+            - {name: data, mountPath: /mlflow}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: mlflow-data}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlflow
+  namespace: waferscan
+spec:
+  selector: {app: mlflow}
+  ports:
+    - {port: 5000, targetPort: 5000}
+---
+# One backbone per Job run; copy LSWMD.pkl (or the processed npz) into the
+# waferscan-data volume first. Checkpoints go to the volume, so a preempted
+# pod resumes where it stopped when the Job retries it.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: train-swin
+  namespace: waferscan
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nvidia.com/gpu.present
+                    operator: In
+                    values: ["true"]
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: train
+          image: ghcr.io/your-org/waferscan-train:1.0.0
+          args: ["--config", "configs/gpu_full.yaml", "--backbone", "swin_t", "--data", "/data/processed/wm811k.npz", "--out", "/data/runs/swin_t"]
+          envFrom:
+            - configMapRef: {name: waferscan-config}
+          resources:
+            limits: {nvidia.com/gpu: 1, memory: "24Gi"}
+            requests: {cpu: "4", memory: "16Gi"}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+            - {name: dshm, mountPath: /dev/shm}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: waferscan-data}
+        - name: dshm
+          emptyDir: {medium: Memory, sizeLimit: 2Gi}
