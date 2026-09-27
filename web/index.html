@@ -296,6 +296,8 @@ footer{background:var(--g0);border-top:2px solid var(--g12);padding:40px 80px;di
         <button class="tool-btn" onclick="resetZoom()">↺</button>
         <div class="tool-sep"></div>
         <button class="tool-btn" onclick="runNewScan()">▶ NEW SCAN</button>
+        <button class="tool-btn" onclick="document.getElementById('wafer-upload').click()">⤒ UPLOAD</button>
+        <input type="file" id="wafer-upload" accept="image/png,image/jpeg,image/bmp,image/tiff" hidden onchange="uploadScan(this)">
       </div>
       <div class="wafer-wrap" style="height:420px">
         <canvas id="wafer-canvas" width="420" height="420"></canvas>

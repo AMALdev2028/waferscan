@@ -450,7 +450,7 @@ function applyModelCard(card){
   // latency histogram: benchmark samples until live scans replace them
   if(card.latency_samples){LIVE.lat=card.latency_samples.slice(-64);renderLatency(LIVE.lat);updateP50();}
   // copy that described the simulation
-  setText('#demo .section-body','Press NEW SCAN to run real inference on a WM-811K wafer from the validation set. Click any die to inspect it. The heatmap layer shows where the CNN looked (class activation map).');
+  setText('#demo .section-body','Press NEW SCAN to run real inference on a WM-811K wafer from the validation set, or UPLOAD your own wafer map image (PNG/JPG). Click any die to inspect it. The heatmap layer shows where the CNN looked (class activation map).');
   const log=document.getElementById('inf-log');log.innerHTML='';
   logLine(`${TS()}Model loaded: ${esc(man.backbone)} × ${man.members} (${esc(card.base_models.join(' + '))})`);
   logLine(`${TS()}<span class="ok">Weights OK · ONNX parity ${man.checks.parity_max_abs_diff_ensemble.toExponential(1)}</span>`);
@@ -505,6 +505,21 @@ async function liveScan(){
   }catch(err){logLine(`${TS()}<span class="err">Error: ${esc(err.message)}</span>`);}
 }
 
+// LIVE: classify a wafer image the user picks (rendered WM-811K map or optical wafer scan)
+async function uploadScan(input){
+  const f=input.files[0];input.value='';          // reset so the same file can be picked again
+  if(!f)return;
+  if(!LIVE.on){logLine(`${TS()}<span class="err">Upload needs the WaferScan API (open this page from the server)</span>`);return;}
+  logLine(`${TS()}Uploading ${esc(f.name)} (${fmt(f.size/1024,0)} KB)…`);
+  try{
+    const fd=new FormData();fd.append('file',f);fd.append('kind','auto');
+    const res=await api('/predict/image',{method:'POST',body:fd});
+    const conv=res.image_to_diemap||{};
+    logLine(`${TS()}Read as ${esc((res.input_kind||'image').replace('_',' '))} → ${res.wafer.rows}×${res.wafer.cols} die grid${conv.ms?` in ${fmt(conv.ms,0)} ms`:''}`);
+    renderResult(res,null);
+  }catch(err){logLine(`${TS()}<span class="err">Upload failed: ${esc(err.message)}</span>`);}
+}
+
 function exportLive(){
   const r=LIVE.res,q=r.quantification,rows=[];
   rows.push('section,key,value');
@@ -525,9 +540,11 @@ function exportLive(){
 async function boot(){
   let card=null;
   try{
+    // 1) is the API there? /stats answers instantly, even while the model is still loading
     const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),2500);
-    const r=await fetch(API+'/model/card',{signal:ctl.signal});clearTimeout(t);
-    if(r.ok)card=await r.json();
+    const ping=await fetch(API+'/stats',{signal:ctl.signal});clearTimeout(t);
+    // 2) then wait as long as model loading takes (slow laptops, cold starts)
+    if(ping.ok)card=await api('/model/card');
   }catch(_){/* no API -> demo mode */}
   if(card){
     LIVE.on=true;LIVE.card=card;
