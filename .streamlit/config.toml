@@ -1,0 +1,23 @@
+# WaferScan monochrome look. Both themes are defined, so visitors can switch
+# Light / Dark from the app's ⋮ menu (System follows the device setting).
+[theme]
+base = "dark"
+font = "monospace"
+
+[theme.dark]
+primaryColor = "#ffffff"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#1a1a1a"
+textColor = "#e5e5e5"
+
+[theme.light]
+primaryColor = "#000000"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f0f0"
+textColor = "#1c1c1c"
+
+[server]
+maxUploadSize = 20
+
+[browser]
+gatherUsageStats = false

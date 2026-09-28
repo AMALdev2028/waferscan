@@ -198,9 +198,9 @@ def _pitch_phase(img: np.ndarray, mask: np.ndarray, axis: int, lo: int = 6) -> t
     ac = np.fft.irfft(np.abs(np.fft.rfft(prof, 2 * len(prof))) ** 2)[: len(prof) // 3]
     ac /= ac[0] + 1e-9
     peaks = [i for i in range(lo, len(ac) - 1) if ac[i] >= ac[i - 1] and ac[i] >= ac[i + 1]]
-    if not peaks:
+    best = max((ac[i] for i in peaks), default=0.0)
+    if best <= 0:   # no peaks, or only negative correlation (e.g. a plain gradient): nothing periodic
         raise ValueError("no periodic die grid found")
-    best = max(ac[i] for i in peaks)
     p0 = float(next(i for i in peaks if ac[i] >= 0.5 * best))
     # refine to sub-pixel: a 0.5 px pitch error drifts 10 px over 20 dies
     x = np.arange(len(prof))
